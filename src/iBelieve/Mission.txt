@@ -1,0 +1,11 @@
+查找功能
+自动缩进
+compile时可能time out
+下拉菜单
+自己定义了class Node储存
+window里的功能
+学习QT
+compile的时候其他图标变成灰色（除了stop）
+再次compile时清空output
+compile 成功时自动跳转至output
+传的太多可能buffer不够了

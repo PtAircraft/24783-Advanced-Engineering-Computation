@@ -1,0 +1,431 @@
+#include "polygonalmesh.h"
+#include "meshlattice.h"
+
+PolygonalMesh::PolygonalMesh()
+{
+	searchKeySeed=1;
+}
+
+////////////////////////////////////////////////////////////
+
+PolygonalMesh::VertexHandle PolygonalMesh::AddVertex(const YsVec3 &pos)
+{
+	Vertex newVtx;
+	newVtx.pos=pos;
+	newVtx.searchKey=searchKeySeed;
+	vtxList.push_back(newVtx);
+
+	VertexHandle vtHd;
+	vtHd.vtxPtr=vtxList.end();
+	--vtHd.vtxPtr;
+
+	vtxSearch[searchKeySeed]=vtHd;
+
+	++searchKeySeed;
+	return vtHd;
+}
+
+bool PolygonalMesh::DeleteVertex(VertexHandle vtHd)
+{
+	if(NullVertex()!=vtHd)
+	{
+		auto vtPlHd=FindPolygonFromVertex(vtHd);
+		if(true==vtPlHd.empty())
+		{
+			auto iter=vtxSearch.find(GetSearchKey(vtHd));
+			vtxSearch.erase(iter);
+			vtxList.erase(vtHd.vtxPtr);
+			return true;
+		}
+	}
+	return false;
+}
+
+YsVec3 PolygonalMesh::GetVertexPosition(VertexHandle vtHd) const
+{
+	return vtHd.vtxPtr->pos;
+}
+
+void PolygonalMesh::SetVertexPosition(VertexHandle vtHd,const YsVec3 &newPos)
+{
+	if(NullVertex()!=vtHd)
+	{
+		vtHd.vtxPtr->pos=newPos;
+	}
+}
+
+long long int PolygonalMesh::GetNumVertex(void) const
+{
+	return vtxList.size();
+}
+bool PolygonalMesh::MoveToNextVertex(VertexHandle &vtHd) const
+{
+	if(vtHd!=NullVertex())
+	{
+		++vtHd.vtxPtr;
+	}
+	else 
+	{
+		vtHd.vtxPtr=vtxList.begin();
+	}
+	if(NullVertex()!=vtHd)
+	{
+		return true;
+	}
+	return false;
+}
+
+unsigned int PolygonalMesh::GetSearchKey(VertexHandle vtHd) const
+{
+	if(NullVertex()!=vtHd)
+	{
+		return vtHd.vtxPtr->searchKey;
+	}
+	else
+	{
+		return 0x7fffffff;
+	}
+}
+
+std::vector <PolygonalMesh::PolygonHandle> PolygonalMesh::FindPolygonFromVertex(VertexHandle vtHd) const
+{
+	auto found=vtKeyToPlg.find(GetSearchKey(vtHd));
+	if(vtKeyToPlg.end()==found)
+	{
+		return std::vector <PolygonHandle>();
+	}
+	else
+	{
+		return found->second;
+	}
+}
+
+std::vector <PolygonalMesh::VertexHandle> PolygonalMesh::GetConnectedVertex(VertexHandle fromVtHd) const
+{
+	std::vector <VertexHandle> connVtHd;
+
+	for(auto plHd : FindPolygonFromVertex(fromVtHd))
+	{
+		auto plVtHd=GetPolygonVertex(plHd);
+		for(int i=1; i<=plVtHd.size(); ++i)
+		{
+			if(plVtHd[i%plVtHd.size()]==fromVtHd)
+			{
+				const VertexHandle toCheck[2]=
+				{
+					plVtHd[i-1],
+					plVtHd[(i+1)%plVtHd.size()]
+				};
+				for(auto tc : toCheck)
+				{
+					if(connVtHd.end()==std::find(connVtHd.begin(),connVtHd.end(),tc))
+					{
+						connVtHd.push_back(tc);
+					}
+				}
+			}
+		}
+	}
+
+	return connVtHd;
+}
+
+std::vector <PolygonalMesh::PolygonHandle> PolygonalMesh::PolygonalMesh::FindPolygonFromEdgePiece(
+     VertexHandle edVtHd0,VertexHandle edVtHd1) const
+{
+	std::vector <PolygonHandle> plHdArray;
+
+	auto vtPlHd0=FindPolygonFromVertex(edVtHd0);
+	auto vtPlHd1=FindPolygonFromVertex(edVtHd1);
+	std::vector <PolygonHandle> *toCheck=nullptr;
+	if(vtPlHd0.size()<vtPlHd1.size())
+	{
+		toCheck=&vtPlHd0;
+	}
+	else
+	{
+		toCheck=&vtPlHd1;
+	}
+
+	for(auto plHd : *toCheck)
+	{
+		auto plVtHd=GetPolygonVertex(plHd);
+		for(int i=0; i<plVtHd.size(); ++i)
+		{
+			auto tstEdVtHd0=plVtHd[i];
+			auto tstEdVtHd1=plVtHd[(i+1)%plVtHd.size()];
+			if((tstEdVtHd0==edVtHd0 && tstEdVtHd1==edVtHd1) || 
+			   (tstEdVtHd0==edVtHd1 && tstEdVtHd1==edVtHd0))
+			{
+				plHdArray.push_back(plHd);
+			}
+		}
+	}
+
+	return plHdArray;
+}
+
+PolygonalMesh::PolygonHandle PolygonalMesh::GetNeighborPolygon(PolygonHandle plHd,int n) const
+{
+	auto plVtHd=GetPolygonVertex(plHd);
+	if(n<plVtHd.size())
+	{
+		auto edPlHd=FindPolygonFromEdgePiece(plVtHd[n],plVtHd[(n+1)%plVtHd.size()]);
+		if(2==edPlHd.size())
+		{
+			if(edPlHd[0]==plHd)
+			{
+				return edPlHd[1];
+			}
+			else if(edPlHd[1]==plHd)
+			{
+				return edPlHd[0];
+			}
+			else
+			{
+				fprintf(stderr,"Internal search data structure broken.\n");
+				return NullPolygon();
+			}
+		}
+	}
+	return NullPolygon();
+}
+
+
+////////////////////////////////////////////////////////////
+
+PolygonalMesh::PolygonHandle PolygonalMesh::AddPolygon(int nPlVt,const VertexHandle plVtHd[])
+{
+	Polygon plg;
+	for(int i=0; i<nPlVt; ++i)
+	{
+		plg.vtHd.push_back(plVtHd[i]);
+	}
+	plg.searchKey=searchKeySeed;
+	plgList.push_back((Polygon &&)plg);
+
+	PolygonHandle plHd;
+	plHd.plgPtr=plgList.end();
+	--plHd.plgPtr;
+
+	RegisterPolygon(plHd);
+
+	++searchKeySeed;
+	return plHd;
+}
+PolygonalMesh::PolygonHandle PolygonalMesh::AddPolygon(const std::vector <VertexHandle> &plVtHd)
+{
+	return AddPolygon((int)plVtHd.size(),plVtHd.data());
+}
+unsigned int PolygonalMesh::GetSearchKey(PolygonHandle plHd) const
+{
+	if(NullPolygon()!=plHd)
+	{
+		return plHd.plgPtr->searchKey;
+	}
+	else
+	{
+		return 0x7fffffff;
+	}
+}
+const std::vector <PolygonalMesh::VertexHandle> PolygonalMesh::GetPolygonVertex(PolygonHandle plHd) const
+{
+	return plHd.plgPtr->vtHd;
+}
+
+long long int PolygonalMesh::GetNumPolygon(void) const
+{
+	return plgList.size();
+}
+bool PolygonalMesh::MoveToNextPolygon(PolygonHandle &plHd) const
+{
+	if(plHd!=NullPolygon())
+	{
+		++plHd.plgPtr;
+	}
+	else 
+	{
+		plHd.plgPtr=plgList.begin();
+	}
+	if(NullPolygon()!=plHd)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool PolygonalMesh::SetPolygonColor(PolygonHandle plHd,YsColor col)
+{
+	if(NullPolygon()!=plHd)
+	{
+		plHd.plgPtr->col=col;
+		return true;
+	}
+	return false;
+}
+YsColor PolygonalMesh::GetColor(PolygonHandle plHd) const
+{
+	if(NullPolygon()!=plHd)
+	{
+		return plHd.plgPtr->col;
+	}
+	return YsWhite();
+}
+bool PolygonalMesh::SetPolygonNormal(PolygonHandle plHd,const YsVec3 &nom)
+{
+	if(NullPolygon()!=plHd)
+	{
+		plHd.plgPtr->nom=nom;
+		return true;
+	}
+	return false;
+}
+YsVec3 PolygonalMesh::GetNormal(PolygonHandle plHd) const
+{
+	if(NullPolygon()!=plHd)
+	{
+		return plHd.plgPtr->nom;
+	}
+	return YsVec3::Origin();
+}
+
+YsVec3 PolygonalMesh::GetCenter(PolygonHandle plHd) const
+{
+	if(NullPolygon()!=plHd)
+	{
+		auto plVtHd=GetPolygonVertex(plHd);
+		auto cen=YsVec3::Origin();
+		for(auto vtHd : plVtHd)
+		{
+			cen+=GetVertexPosition(vtHd);
+		}
+		return cen/(double)plVtHd.size();
+	}
+	return YsVec3::Origin();
+}
+
+bool PolygonalMesh::SetPolygonVertex(PolygonHandle plHd,const std::vector <VertexHandle> &newPlVtHd)
+{
+	if(NullPolygon()!=plHd)
+	{
+		UnregisterPolygon(plHd);
+		plHd.plgPtr->vtHd=newPlVtHd;
+		RegisterPolygon(plHd);
+		return true;
+	}
+	return false;
+}
+void PolygonalMesh::UnregisterPolygon(PolygonHandle plHd)
+{
+	for(auto vtHd : GetPolygonVertex(plHd))
+	{
+		UnregisterPolygonFromVertex(plHd,vtHd);
+	}
+}
+void PolygonalMesh::UnregisterPolygonFromVertex(PolygonHandle plHd,VertexHandle vtHd)
+{
+	auto &vtPlHd=vtKeyToPlg[GetSearchKey(vtHd)];
+	for(int idx=(int)vtPlHd.size()-1; 0<=idx; --idx)
+	{
+		if(vtPlHd[idx]==plHd)
+		{
+			vtPlHd[idx]=vtPlHd.back();
+			vtPlHd.pop_back();
+			// break;
+		}
+	}
+}
+void PolygonalMesh::RegisterPolygon(PolygonHandle plHd)
+{
+	for(auto vtHd : GetPolygonVertex(plHd))
+	{
+		vtKeyToPlg[GetSearchKey(vtHd)].push_back(plHd);
+	}
+}
+
+
+////////////////////////////////////////////////////////////
+
+void PolygonalMesh::GetBoundingBox(YsVec3 &min,YsVec3 &max) const
+{
+	double minx,miny,minz,maxx,maxy,maxz;
+
+	if(1<=GetNumVertex())
+	{
+		bool first=true;
+		for(auto vtHd=NullVertex(); true==MoveToNextVertex(vtHd); )
+		{
+			auto vtPos=GetVertexPosition(vtHd);
+			if(true==first)
+			{
+				first=false;
+				minx=vtPos.x();
+				miny=vtPos.y();
+				minz=vtPos.z();
+				maxx=vtPos.x();
+				maxy=vtPos.y();
+				maxz=vtPos.z();
+			}
+			else
+			{
+				double x=vtPos.x(),y=vtPos.y(),z=vtPos.z();
+				minx=(x<minx ? x : minx);
+				miny=(y<miny ? y : miny);
+				minz=(z<minz ? z : minz);
+				maxx=(x>maxx ? x : maxx);
+				maxy=(y>maxy ? y : maxy);
+				maxz=(z>maxz ? z : maxz);
+			}
+		}
+		min.Set(minx,miny,minz);
+		max.Set(maxx,maxy,maxz);
+	}
+	else
+	{
+		min=YsVec3::Origin();
+		max=YsVec3::Origin();
+	}
+}
+
+////////////////////////////////////////////////////////////
+
+void PolygonalMesh::MergeVertex(const double tol)
+{
+	MeshLattice ltc;
+	ltc.SetDomain(*this,100,100,100);
+
+	for(auto plHd=NullPolygon(); true==MoveToNextPolygon(plHd); )
+	{
+		auto plVtHd=GetPolygonVertex(plHd);
+		bool needReassign=false;
+		for(auto &vtHd : plVtHd)
+		{
+			auto min=GetVertexPosition(vtHd);
+			auto max=GetVertexPosition(vtHd);
+			min-=YsVec3(tol/2.0,tol/2.0,tol/2.0);
+			max+=YsVec3(tol/2.0,tol/2.0,tol/2.0);
+
+			auto found=ltc.FindVertex(min,max);
+			if(1<found.size())
+			{
+				auto vtHdCandidate=found[0];
+				for(auto v : found)
+				{
+					if(GetSearchKey(v)<GetSearchKey(vtHdCandidate))
+					{
+						vtHdCandidate=v;
+					}
+				}
+				if(vtHd!=vtHdCandidate)
+				{
+					vtHd=vtHdCandidate;
+					needReassign=true;
+				}
+			}
+		}
+		if(true==needReassign)
+		{
+			SetPolygonVertex(plHd,plVtHd);
+		}
+	}
+}

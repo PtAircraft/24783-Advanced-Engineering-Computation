@@ -1,0 +1,265 @@
+#include <vector>
+
+#include <ysclass.h>
+
+#include <fslazywindow.h>
+
+#include "polygonalmesh.h"
+
+#include "naca4digit.h"
+
+class FsLazyWindowApplication : public FsLazyWindowApplicationBase
+{
+protected:
+	bool needRedraw;
+
+	YsMatrix4x4 Rc;
+	double d;
+	YsVec3 t;
+
+	PolygonalMesh mesh;
+    
+    
+	std::vector <float> vtx,nom,col;
+	YsVec3 bbx[2];
+
+	static void AddColor(std::vector <float> &col,float r,float g,float b,float a);
+	static void AddVertex(std::vector <float> &vtx,float x,float y,float z);
+	static void AddNormal(std::vector <float> &nom,float x,float y,float z);
+
+	void RemakeVertexArray(void);
+
+public:
+	FsLazyWindowApplication();
+	virtual void BeforeEverything(int argc,char *argv[]);
+	virtual void GetOpenWindowOption(FsOpenWindowOption &OPT) const;
+	virtual void Initialize(int argc,char *argv[]);
+	virtual void Interval(void);
+	virtual void BeforeTerminate(void);
+	virtual void Draw(void);
+	virtual bool UserWantToCloseProgram(void);
+	virtual bool MustTerminate(void) const;
+	virtual long long int GetMinimumSleepPerInterval(void) const;
+	virtual bool NeedRedraw(void) const;
+};
+
+/* static */ void FsLazyWindowApplication::AddColor(std::vector <float> &col,float r,float g,float b,float a)
+{
+	col.push_back(r);
+	col.push_back(g);
+	col.push_back(b);
+	col.push_back(a);
+}
+/* static */ void FsLazyWindowApplication::AddVertex(std::vector <float> &vtx,float x,float y,float z)
+{
+	vtx.push_back(x);
+	vtx.push_back(y);
+	vtx.push_back(z);
+}
+/* static */ void FsLazyWindowApplication::AddNormal(std::vector <float> &nom,float x,float y,float z)
+{
+	nom.push_back(x);
+	nom.push_back(y);
+	nom.push_back(z);
+}
+
+void FsLazyWindowApplication::RemakeVertexArray(void)
+{
+	vtx.clear();
+	col.clear();
+	nom.clear();
+
+	for(auto plHd=mesh.NullPolygon(); true==mesh.MoveToNextPolygon(plHd); )
+	{
+		auto plVtHd=mesh.GetPolygonVertex(plHd);
+		auto plCol=mesh.GetColor(plHd);
+		auto plNom=mesh.GetNormal(plHd);
+
+		// Let's assume every polygon is a triangle for now.
+		if(3==plVtHd.size())
+		{
+			for(int i=0; i<3; ++i)
+			{
+				auto vtPos=mesh.GetVertexPosition(plVtHd[i]);
+				vtx.push_back(vtPos.xf());
+				vtx.push_back(vtPos.yf());
+				vtx.push_back(vtPos.zf());
+				nom.push_back(plNom.xf());
+				nom.push_back(plNom.yf());
+				nom.push_back(plNom.zf());
+				col.push_back(plCol.Rf());
+				col.push_back(plCol.Gf());
+				col.push_back(plCol.Bf());
+				col.push_back(plCol.Af());
+			}
+		}
+	}
+}
+
+FsLazyWindowApplication::FsLazyWindowApplication()
+{
+	needRedraw=false;
+	d=1;
+//	t=YsVec3::Origin();
+    t[0] = 0;
+    t[1] = 0;
+    t[2] = 0.5;
+    Rc.RotateXZ(YsPi/2.0);
+}
+
+/* virtual */ void FsLazyWindowApplication::BeforeEverything(int argc,char *argv[])
+{
+}
+/* virtual */ void FsLazyWindowApplication::GetOpenWindowOption(FsOpenWindowOption &opt) const
+{
+	opt.x0=0;
+	opt.y0=0;
+	opt.wid=1200;
+	opt.hei=800;
+}
+/* virtual */ void FsLazyWindowApplication::Initialize(int argc,char *argv[])
+{
+
+//    printf("check1\n");
+//    printf("argc: %d",argc);
+    if (argc == 3) {
+//        printf("check2\n");
+        int naca = atoi(argv[1]);
+        double dz = atof(argv[2]);
+//        printf("naca: %lf,dz: %lf\n",naca,dz);
+        auto nacavtx = MakeNACA4DigitAirfoil(naca,dz);
+//        printf("check3");
+        int size = nacavtx.size();
+//        printf("check4，size: %d",size);
+        for (int i = 0; i < size; i++) {
+//             printf("check5\n");
+//            printf("i: %d\n",i);
+            AddVertex(vtx,nacavtx[i][0],nacavtx[i][1],nacavtx[i][2]);
+        }
+    } else {
+        printf("Invalid input.\n");
+    }
+//    printf("vtxsize: %d\n",vtx.size());
+//    for (int i = 0; i< 100; i++) {
+//        printf("x:%lf, y: %lf, z: %lf\n",vtx[i*3],vtx[i*3+1],vtx[i*3+2]);
+//        printf("i: %d\n",i);
+//    }
+//    printf("check6\n");
+    
+}
+/* virtual */ void FsLazyWindowApplication::Interval(void)
+{
+	auto key=FsInkey();
+	if(FSKEY_ESC==key)
+	{
+		SetMustTerminate(true);
+	}
+
+	if(FsGetKeyState(FSKEY_LEFT))
+	{
+		Rc.RotateXZ(YsPi/60.0);
+	}
+	if(FsGetKeyState(FSKEY_RIGHT))
+	{
+		Rc.RotateXZ(-YsPi/60.0);
+	}
+	if(FsGetKeyState(FSKEY_UP))
+	{
+		Rc.RotateYZ(YsPi/60.0);
+	}
+	if(FsGetKeyState(FSKEY_DOWN))
+	{
+		Rc.RotateYZ(-YsPi/60.0);
+	}
+
+
+	needRedraw=true;
+}
+/* virtual */ void FsLazyWindowApplication::Draw(void)
+{
+	needRedraw=false;
+
+//    printf("checkone\n");
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+	int wid,hei;
+	FsGetWindowSize(wid,hei);
+	auto aspect=(double)wid/(double)hei;
+	glViewport(0,0,wid,hei);
+//printf("checktwo\n");
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45.0,aspect,d/10.0,d*2.0);
+//printf("checkthree\n");
+	YsMatrix4x4 globalToCamera=Rc;
+	globalToCamera.Invert();
+//printf("checkfour\n");
+	YsMatrix4x4 modelView;  // need #include ysclass.h
+	modelView.Translate(0,0,-d);
+	modelView*=globalToCamera;
+	modelView.Translate(-t);
+//printf("checkfive\n");
+	GLfloat modelViewGl[16];
+	modelView.GetOpenGlCompatibleMatrix(modelViewGl);
+//printf("checksix\n");
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+//printf("checkseven\n");
+	GLfloat lightDir[]={0.0f,1.0f/(float)sqrt(2.0f),1.0f/(float)sqrt(2.0f),0.0f};
+	glLightfv(GL_LIGHT0,GL_POSITION,lightDir);
+	glEnable(GL_COLOR_MATERIAL);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+//printf("checkeight\n");
+	glMultMatrixf(modelViewGl);
+//printf("checknine\n");
+	glEnableClientState(GL_VERTEX_ARRAY);
+//	glEnableClientState(GL_NORMAL_ARRAY);
+//	glEnableClientState(GL_COLOR_ARRAY);
+//	glColorPointer(4,GL_FLOAT,0,col.data());
+//	glNormalPointer(GL_FLOAT,0,nom.data());
+//    printf("ohho\n");
+	glVertexPointer(3,GL_FLOAT,0,vtx.data());
+//    printf("ohyeah\n");
+	glDrawArrays(GL_LINE_LOOP,0,vtx.size()/3);
+//    printf("ohright\n");
+	glDisableClientState(GL_VERTEX_ARRAY);
+//    printf("ohen\n");
+//	glDisableClientState(GL_NORMAL_ARRAY);
+//    printf("ohno\n");
+//	glDisableClientState(GL_COLOR_ARRAY);
+//printf("checkten\n");
+	FsSwapBuffers();
+}
+/* virtual */ bool FsLazyWindowApplication::UserWantToCloseProgram(void)
+{
+	return true; // Returning true will just close the program.
+}
+/* virtual */ bool FsLazyWindowApplication::MustTerminate(void) const
+{
+	return FsLazyWindowApplicationBase::MustTerminate();
+}
+/* virtual */ long long int FsLazyWindowApplication::GetMinimumSleepPerInterval(void) const
+{
+	return 10;
+}
+/* virtual */ void FsLazyWindowApplication::BeforeTerminate(void)
+{
+}
+/* virtual */ bool FsLazyWindowApplication::NeedRedraw(void) const
+{
+	return needRedraw;
+}
+
+
+static FsLazyWindowApplication *appPtr=nullptr;
+
+/* static */ FsLazyWindowApplicationBase *FsLazyWindowApplicationBase::GetApplication(void)
+{
+	if(nullptr==appPtr)
+	{
+		appPtr=new FsLazyWindowApplication;
+	}
+	return appPtr;
+}

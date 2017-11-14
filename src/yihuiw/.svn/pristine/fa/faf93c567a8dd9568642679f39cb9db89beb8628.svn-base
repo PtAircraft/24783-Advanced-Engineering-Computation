@@ -1,0 +1,73 @@
+#include <polygonalmesh.h>
+#include <math.h>
+#include "naca4digit.h"
+
+std::vector <YsVec3> MakeNACA4DigitAirfoil(int naca,const double dz)
+{
+    printf("check1.0\n");
+    std::vector <YsVec3> vtx;
+    std::vector <YsVec3> vtxl;
+    // x cordinate
+    double x = 0;
+    //chord length
+    double c = 1.0;
+    double t,p,m;
+    //obtain parameters;
+    t = naca % 100;
+    t = t/100;
+    naca = naca / 100;
+    p = naca % 10;
+    p = p / 10;
+    naca = naca / 10;
+    m = double(naca) /100;
+//    printf("t:%lf, p:%lf, m:%lf, dz:%lf\n",t,p,m,dz);
+//    printf("check2.0\n");
+    
+    int size = 0;
+    for (double z = 0; z <= c; z = z + dz) {
+        //calculate half thickness yt
+        double yt = 5*t*(0.2969*sqrt(z/c) - 0.1260*(z/c) - 0.3516 * pow((z/c),2)
+                         + 0.2843*pow((z/c),3) - 0.1015*pow((z/c),4));
+        
+        //calculate yc
+        double yc;
+        if (z >= 0 && z <= p*c) {
+            yc = m/pow(p,2)*(2*p*(z/c)-pow((z/c),2));
+        } else if (z <= c && z >= p*c) {
+            yc = m/pow((1-p),2)*((1-2*p)+2*p*(z/c)-pow((z/c),2));
+        }
+        
+        //calculate zu,zl,yu,yl
+        double zu,zl,yu,yl;
+        zu = z - yt;
+        zl = z + yt;
+        yu = yc + yt;
+        yl = yc - yt;
+        vtx.push_back(YsVec3(x,yu,zu));
+        vtxl.push_back(YsVec3(x,yl,zl));
+        size++;
+//        printf("z:%lf, size: %d\n",z,size);
+    }
+    double z = 1;
+    double yt = 5*t*(0.2969*sqrt(z/c) - 0.1260*(z/c) - 0.3516 * pow((z/c),2)
+                     + 0.2843*pow((z/c),3) - 0.1015*pow((z/c),4));
+    double yc = m/pow((1-p),2)*((1-2*p)+2*p*(z/c)-pow((z/c),2));
+    double zu,zl,yu,yl;
+    zu = z - yt;
+    zl = z + yt;
+    yu = yc + yt;
+    yl = yc - yt;
+    vtx.push_back(YsVec3(x,yu,zu));
+    vtxl.push_back(YsVec3(x,yl,zl));
+    size = size + 1;
+    for (int i = size - 1; i >= 0; i--) {
+        vtx.push_back(vtxl[i]);
+    }
+	
+    
+	return vtx;
+}
+
+void MakeNACA4DigitAirfoilWing(class PolygonalMesh &mesh,int naca,float span,float sweepBack,float dihedral,float taper,float dz)
+{
+}

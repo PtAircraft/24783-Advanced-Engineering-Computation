@@ -1,0 +1,2 @@
+add_executable(shellext_sample MACOSX_BUNDLE main.cpp glutil.cpp glutil.h shelllattice.h shelllattice.cpp)
+target_link_libraries(shellext_sample fslazywindow ysclass geblkernel polygonalmesh)

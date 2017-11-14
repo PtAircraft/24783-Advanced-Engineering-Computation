@@ -1,0 +1,26 @@
+//
+//  bintreeFunctionList.cpp
+//  
+//
+//  Created by 王翌晖 on 3/4/17.
+//
+//
+Node *GetNode(NodeHandle ndHd)
+
+const Node *GetNode(NodeHandle ndHd) const
+
+static NodeHandle MakeHandle(Node *nodePtr)
+bool UpdateHeight(Node *nodePtr)
+void UpdateHeightCascade(Node *nodePtr)
+long long int GetN(void) const
+NodeHandle FindNode(const KeyClass &key) const
+bool IsKeyIncluded(const KeyClass &key) const
+int GetHeight(NodeHandle ndHd) const
+NodeHandle Insert(const KeyClass &key,const ValueClass &value)
+NodeHandle First(void) const
+NodeHandle FindNext(NodeHandle ndHd) const
+NodeHandle RightMostOf(NodeHandle ndHd)
+bool Delete(NodeHandle ndHd)
+bool RotateLeft(NodeHandle ndHd)
+bool RotateRight(NodeHandle ndHd)
+bool SimpleDetach(NodeHandle ndHd)

@@ -1,0 +1,40 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>Images/editcopy.png</file>
+        <file>Images/editcut.png</file>
+        <file>Images/editpaste.png</file>
+        <file>Images/editredo.png</file>
+        <file>Images/editundo.png</file>
+        <file>Images/filenew.png</file>
+        <file>Images/fileopen.png</file>
+        <file>Images/fileprint.png</file>
+        <file>Images/filesave.png</file>
+        <file>Images/qt-logo.png</file>
+        <file>Images/zoomin.png</file>
+        <file>Images/zoomout.png</file>
+        <file>Images/Zoom.png</file>
+        <file>Images/Add.png</file>
+        <file>Images/Apply.png</file>
+        <file>Images/Close.png</file>
+        <file>Images/Danger.png</file>
+        <file>Images/Exit.png</file>
+        <file>Images/Export.png</file>
+        <file>Images/Find.png</file>
+        <file>Images/Funnel.png</file>
+        <file>Images/Import.png</file>
+        <file>Images/Info.png</file>
+        <file>Images/No.png</file>
+        <file>Images/Ok.png</file>
+        <file>Images/Play.png</file>
+        <file>Images/Registry.png</file>
+        <file>Images/Search text.png</file>
+        <file>Images/Settings.png</file>
+        <file>Images/Stop.png</file>
+        <file>Images/Time.png</file>
+        <file>Images/Tools.png</file>
+        <file>Images/Wait.png</file>
+        <file>Images/Warning.png</file>
+        <file>Images/lemon.png</file>
+        <file>Images/lemon.ico</file>
+    </qresource>
+</RCC>

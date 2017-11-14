@@ -1,0 +1,22 @@
+#include <ysclass.h>
+#include <ysbitmap.h>
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/aruco.hpp>
+
+
+int main(void)
+{
+	cv::Ptr<cv::aruco::Dictionary> dict=cv::aruco::getPredefinedDictionary(cv::aruco::DICT_7X7_1000);
+	for(int i=0; i<10; ++i)
+	{
+		cv::Mat img(200,200,CV_8UC3);
+		cv::aruco::drawMarker(dict,i,200,img,1);
+
+		YsString str;
+		str.Printf("%03d.png",i);
+		cv::imwrite(str.data(),img);
+	}
+	return 0;
+}
+

@@ -1,0 +1,113 @@
+#include "polygonalmesh.h"
+
+PolygonalMesh::PolygonalMesh()
+{
+	searchKeySeed=1;
+}
+
+////////////////////////////////////////////////////////////
+
+PolygonalMesh::VertexHandle PolygonalMesh::AddVertex(const YsVec3 &pos)
+{
+	Vertex newVtx;
+	newVtx.pos=pos;
+	newVtx.searchKey=searchKeySeed;
+	++searchKeySeed:
+	vtxList.push_back(newVtx);
+
+	VertexHandle vtHd;
+	vtHd.vtxPtr=vtxList.end();
+	--vtHd.vtxPtr;
+	return vtHd;
+}
+
+YsVec3 PolygonalMesh::GetVertexPosition(VertexHandle vtHd) const
+{
+	return vtHd.vtxPtr->pos;
+}
+
+long long int PolygonalMesh::GetNumVertex(void) const
+{
+	return vtxList.size();
+}
+bool PolygonalMesh::MoveToNextVertex(VertexHandle &vtHd) const
+{
+	if(vtHd!=NullVertex())
+	{
+		++vtHd.vtxPtr;
+	}
+	else 
+	{
+		vtHd.vtxPtr=vtxList.begin();
+	}
+	if(NullVertex()!=vtHd)
+	{
+		return true;
+	}
+	return false;
+}
+
+unsigned int PolygonalMesh::GetSearchKey(VertexHandle vtHd) const
+{
+	if(NullVertex()!=vtHd)
+	{
+		return vtHd.vtxPtr->searchKey;
+	}
+	else
+	{
+		return 0x7fffffff;
+	}
+}
+
+//std::vector <PolygonHandle> PolygonalMesh::FindPolygonFromVertex(VertexHandle vtHd) const
+//{
+//}
+
+
+////////////////////////////////////////////////////////////
+
+PolygonalMesh::PolygonHandle PolygonalMesh::AddPolygon(int nPlVt,const VertexHandle plVtHd[])
+{
+	Polygon plg;
+	for(int i=0; i<nPlVt; ++i)
+	{
+		plg.vtHd.push_back(plVtHd[i]);
+	}
+	plgList.push_back((Polygon &&)plg);
+
+	PolygonHandle plHd;
+	plHd.plgPtr=plgList.end();
+	--plHd.plgPtr;
+	return plHd;
+}
+PolygonalMesh::PolygonHandle PolygonalMesh::AddPolygon(const std::vector <VertexHandle> &plVtHd)
+{
+	return AddPolygon((int)plVtHd.size(),plVtHd.data());
+}
+const std::vector <PolygonalMesh::VertexHandle> PolygonalMesh::GetPolygonVertex(PolygonHandle plHd) const
+{
+	return plHd.plgPtr->vtHd;
+}
+
+long long int PolygonalMesh::GetNumPolygon(void) const
+{
+	return plgList.size();
+}
+bool PolygonalMesh::MoveToNextPolygon(PolygonHandle &plHd) const
+{
+	if(plHd!=NullPolygon())
+	{
+		++plHd.plgPtr;
+	}
+	else 
+	{
+		plHd.plgPtr=plgList.begin();
+	}
+	if(NullPolygon()!=plHd)
+	{
+		return true;
+	}
+	return false;
+}
+
+////////////////////////////////////////////////////////////

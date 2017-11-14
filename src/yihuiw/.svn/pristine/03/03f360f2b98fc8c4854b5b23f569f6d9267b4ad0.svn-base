@@ -1,0 +1,12 @@
+add_library(utility 
+	utility.cpp
+	hashbase.h
+	hashset.h
+	hashtable.h
+        bintree.h
+        polygonalmesh.cpp
+        Polygonalmesh.h
+        Polygonalmeshio.cpp
+                  )
+target_link_libraries(utility ysclass)
+target_include_directories(utility PUBLIC .)
